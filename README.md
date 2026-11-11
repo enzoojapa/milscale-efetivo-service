@@ -55,14 +55,14 @@ npm test               # testes unitários e de arquitetura
 Com Docker:
 
 ```bash
-docker build -t enzoojapa/milscale-efetivo-service:v1 .
-docker run -p 3001:3001 -e MONGO_URI="..." enzoojapa/milscale-efetivo-service:v1
+docker build -t enzowlima/milscale-efetivo-service:v1 .
+docker run -p 3001:3001 -e MONGO_URI="..." enzowlima/milscale-efetivo-service:v1
 ```
 
 ## Links
 
-- Swagger: _LINK_SWAGGER_
-- Docker Hub: _LINK_DOCKER_
+- Swagger: https://ca-milscale-efetivo.ashyforest-fcfffbba.eastus2.azurecontainerapps.io/swagger
+- Docker Hub: https://hub.docker.com/r/enzowlima/milscale-efetivo-service
 
 ## Projetos do sistema
 
