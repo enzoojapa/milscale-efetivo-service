@@ -1,84 +1,29 @@
 # MilScale - Efetivo Service
 
-Microsserviço responsável pelo cadastro do efetivo (militares) do MilScale, sistema de escalas de serviço de 24h de uma organização militar.
-Guarda nome de guerra, graduação, subunidade e situação (apto, em missão ou afastado). A quantidade de militares aptos é usada pelo BFF para calcular o ciclo de serviço.
+Esse microsserviço cuida do cadastro do efetivo do MilScale, ou seja, dos militares que podem entrar na escala de serviço. De cada militar a gente guarda o nome de guerra, a graduação, a subunidade e a situação, que pode ser apto, em missão ou afastado. Só quem está apto entra na conta do ciclo de serviço, então quando alguém vai pra missão o ciclo muda na hora no painel.
 
-## Arquitetura
+O banco é o MongoDB Atlas no plano gratuito, com a coleção `militares` e um índice único no nome de guerra, pra não deixar cadastrar dois militares com o mesmo nome. O CRUD é completo: dá pra listar (com filtro por situação e subunidade), buscar por id, cadastrar, atualizar e remover, e tudo está documentado no Swagger.
 
-```
-Usuário -> Microfrontend (React) -> API Gateway (AWS) -> BFF (Node.js)
-                                                         |-> Efetivo Service -> MongoDB Atlas
-                                                         |-> Escala Service  -> Azure SQL
-                                                         |                   -> Azure Service Bus -> Function (notificar-escala)
-                                                         |-> Azure Function (calcular-ciclo)
-```
+A organização segue Clean Architecture com Vertical Slice. O domínio tem a entidade Militar, as validações e a interface do repositório. Na aplicação cada caso de uso tem a sua própria pasta (create-militar, list-militares, get-militar, update-militar e delete-militar). A infraestrutura tem o repositório do MongoDB e um em memória usado nos testes, e a API tem as rotas por funcionalidade, o Swagger e a montagem das dependências. Os testes unitários passam pelo domínio, pelos casos de uso e pelas rotas, e os testes de arquitetura conferem as dependências entre camadas e que uma funcionalidade não importa a outra.
 
-Organização em **Clean Architecture** com **Vertical Slice** por funcionalidade:
+Foi feito em Node.js 22 com TypeScript, Express 5 e o driver oficial do MongoDB, com Swagger UI, Jest, Supertest e Docker.
 
-```
-src/
-  domain/            entidade Militar, regras de validação e porta MilitarRepository
-  application/       um caso de uso por pasta (create-militar, list-militares, get-militar, update-militar, delete-militar)
-  infrastructure/    MongoMilitarRepository (driver oficial do MongoDB) e repositório em memória
-  api/               rotas Express por feature, Swagger e composição (server.ts)
-tests/
-  unit/              domínio, casos de uso e API
-  architecture/      regras de dependência entre camadas e entre slices
-```
-
-Banco: **MongoDB Atlas** (Free Tier), coleção `militares` com índice único em `nomeGuerra`.
-
-## Endpoints
-
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | /militares | Lista (filtros `situacao` e `subunidade`) com total e aptos |
-| POST | /militares | Cadastra |
-| GET | /militares/{id} | Busca por id |
-| PUT | /militares/{id} | Atualiza (ex.: situação para MISSAO) |
-| DELETE | /militares/{id} | Remove |
-| GET | /swagger | Documentação Swagger |
-
-## Tecnologias
-
-Node.js 22, TypeScript, Express 5, MongoDB Node Driver, Swagger UI, Jest, Supertest, Docker.
-
-## Como rodar localmente
+Pra rodar localmente precisa da connection string do Mongo no `.env`:
 
 ```bash
 npm install
-cp .env.example .env   # preencher MONGO_URI
-npm run dev            # http://localhost:3001/swagger
-npm test               # testes unitários e de arquitetura
+cp .env.example .env
+npm run dev
+npm test
 ```
 
-Com Docker:
+A imagem foi publicada no Docker Hub assim:
 
 ```bash
 docker build -t enzowlima/milscale-efetivo-service:v1 .
-docker run -p 3001:3001 -e MONGO_URI="..." enzowlima/milscale-efetivo-service:v1
+docker push enzowlima/milscale-efetivo-service:v1
 ```
 
-## Links
+Na nuvem ele roda no Azure Container Apps. O Swagger está em https://ca-milscale-efetivo.ashyforest-fcfffbba.eastus2.azurecontainerapps.io/swagger e a imagem em https://hub.docker.com/r/enzowlima/milscale-efetivo-service. Ele é chamado pelo BFF (https://github.com/enzoojapa/milscale-bff), e o resto do projeto está no frontend (https://github.com/enzoojapa/milscale-frontend), no serviço de escalas (https://github.com/enzoojapa/milscale-escala-service) e na Function (https://github.com/enzoojapa/milscale-function).
 
-- Swagger: https://ca-milscale-efetivo.ashyforest-fcfffbba.eastus2.azurecontainerapps.io/swagger
-- Docker Hub: https://hub.docker.com/r/enzowlima/milscale-efetivo-service
-
-## Projetos do sistema
-
-| Componente | Repositório |
-|---|---|
-| Microfrontend (React) | [milscale-frontend](https://github.com/enzoojapa/milscale-frontend) |
-| BFF (Node.js) | [milscale-bff](https://github.com/enzoojapa/milscale-bff) |
-| Microsserviço de efetivo (MongoDB) | [milscale-efetivo-service](https://github.com/enzoojapa/milscale-efetivo-service) |
-| Microsserviço de escalas (Azure SQL) | [milscale-escala-service](https://github.com/enzoojapa/milscale-escala-service) |
-| Azure Function | [milscale-function](https://github.com/enzoojapa/milscale-function) |
-
-## Alunos
-
-- Enzo Watanabe de Lima
-- João Guilherme Salomão
-- João Guilherme Cordeiro
-- Rafael Zeni Simião
-
-PUCPR - Engenharia de Software - Arquitetura e Soluções Cloud (2026/2)
+Trabalho feito por Enzo Watanabe de Lima, João Guilherme Salomão, João Guilherme Cordeiro e Rafael Zeni Simião, para a disciplina de Arquitetura e Soluções Cloud da PUCPR (2026/2).
